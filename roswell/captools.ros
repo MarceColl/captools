@@ -1,0 +1,67 @@
+#!/bin/sh
+#|-*- mode:lisp -*-|#
+#|
+exec ros -Q -L sbcl-bin -m captools -- $0 "$@"
+|#
+(progn ;;init forms
+  (ros:ensure-asdf)
+  #+quicklisp(ql:quickload '() :silent t))
+
+(ql:quickload :captools)
+  
+(defpackage :ros.script.captools.3871909325
+  (:use :cl :lparallel :iterate :cl-ansi-text))
+(in-package :ros.script.captools.3871909325)
+
+(defun m/get-inner (place keys)
+  (let ((curr-key (car keys))
+        (next-keys (cdr keys)))
+    (if curr-key
+        `(getf ,(m/get-inner place next-keys) ,curr-key)
+        place)))
+
+(defmacro m/get (place &rest keys)
+  (let ((rkeys (reverse keys)))
+    (m/get-inner place rkeys)))
+
+(defun status-to-string (status)
+  (if status
+      "PASSED"
+      "FAILED"))
+
+(defun print-tests (tests)
+  (dolist (test tests)))
+    ;; (format T "~a~%" (m/get test :messages))))
+
+(defun print-tc (tc)
+  (let* ((file (getf tc :test-file))
+         (status (status-to-string (= (m/get tc :test-suites :failed) 0)))
+         (status-color (if (string= status "FAILED") :red :green)))
+    (with-color (status-color)
+      (format T "~C~a - ~a~%" #\return file status)
+      (if (string= status "FAILED")
+          (print-tests
+           (remove-if-not
+            (lambda (test) (string= "failed" (m/get test :status)))
+            (m/get tc :results)))))))
+
+(defparameter pb-tests nil)
+
+(defun main (&rest argv)
+  (declare (ignorable argv))
+  (let* ((pending (captools:run-tests-by-prefix "./libs/payments"))
+         (num-tests (length pending))
+         (start-time (get-universal-time)))
+    (cl-cram:with-progress-bar pb-tests "Tests" num-tests
+      (do* ((finished nil (= (length pending) 0))
+            (newly-passed '() (mapcar #'force (remove-if-not #'fulfilledp pending)))
+            (pending pending (remove-if #'fulfilledp pending)))
+           (finished nil)
+        (dolist (ts newly-passed)
+          (print-tc ts))
+        (cl-cram:update pb-tests (length newly-passed))
+        (force-output)
+        (sleep 0.5)))
+    (format T "~%Ran ~a tests in ~a seconds~%" num-tests (- (get-universal-time) start-time))))
+
+;;; vim: set ft=lisp lisp:
