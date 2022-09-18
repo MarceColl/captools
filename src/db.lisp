@@ -14,11 +14,15 @@
 
 (defun create-pristine-db ()
   (do-sql *db-conn*
+    (format nil "SET client_min_messages = 'error';"))
+  (do-sql *db-conn*
+    (format nil "DROP DATABASE IF EXISTS ~s;" *database-name* (lparallel:kernel-worker-index)))
+  (do-sql *db-conn*
     (format nil "CREATE DATABASE ~s WITH TEMPLATE test_template_~a OWNER prisma;" *database-name* (lparallel:kernel-worker-index))))
 
 (defun delete-pristine-db ()
   (do-sql *db-conn*
-    (format nil "DROP DATABASE ~s;" *database-name*)))
+    (format nil "DROP DATABASE IF EXISTS ~s;" *database-name*)))
 
 (defmacro with-pristine-db (&rest body)
   (let ((rg (gensym)))

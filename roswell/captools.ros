@@ -13,6 +13,8 @@ exec ros -Q -L sbcl-bin -m captools -- $0 "$@"
   (:use :cl :lparallel :iterate :cl-ansi-text))
 (in-package :ros.script.captools.3871909325)
 
+(defparameter pb-tests nil)
+
 (defun m/get-inner (place keys)
   (let ((curr-key (car keys))
         (next-keys (cdr keys)))
@@ -38,20 +40,38 @@ exec ros -Q -L sbcl-bin -m captools -- $0 "$@"
          (status (status-to-string (= (m/get tc :test-suites :failed) 0)))
          (status-color (if (string= status "FAILED") :red :green)))
     (with-color (status-color)
-      (format T "~C~a - ~a~%" #\return file status)
+      (format T "~C[~a] " #\return status))
+    (format T "file:///home/mcoll/capchase/code/client-monorepo/~a~%" file)
+    (with-color (status-color)
       (if (string= status "FAILED")
           (print-tests
            (remove-if-not
             (lambda (test) (string= "failed" (m/get test :status)))
             (m/get tc :results)))))))
 
-(defparameter pb-tests nil)
+(defun run-affected-tests ())
 
-(defun main (&rest argv)
+(defun run-failed-tests ())
+
+(defun main (&optional (opt :affected) &rest argv)
   (declare (ignorable argv))
+
+  (let ((mode (cond
+                ((string= opt "-a") :affected)
+                ((string= opt "-f") :failed)
+                ((string= opt "-c") :config)
+                (t opt))))
+    (format T "~a~%" mode))
   (captools.config:load-config)
   (format T "Running on ~a workers~%" (captools.config:get-config :num-workers))
-  (let* ((pending (captools:run-tests-by-prefix "./libs/payments"))
+  (let* ((pending
+           (cond
+             ((or (string= opt "-a") (eq opt :affected))
+              (run-affected-tests))
+             ((string= opt "-f")
+              (run-failed-tests))
+             ((string= opt "-c"))
+             (t (captools:run-tests-by-prefix opt))))
          (num-tests (length pending))
          (start-time (get-universal-time)))
     (cl-cram:with-progress-bar pb-tests "Tests" num-tests
