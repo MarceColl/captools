@@ -30,8 +30,8 @@ exec ros -Q -L sbcl-bin -m captools -- $0 "$@"
       "FAILED"))
 
 (defun print-tests (tests)
-  (dolist (test tests)))
-    ;; (format T "~a~%" (m/get test :messages))))
+  (dolist (test tests)
+    (format T "~a~%" (m/get test :messages))))
 
 (defun print-tc (tc)
   (let* ((file (getf tc :test-file))
@@ -49,6 +49,8 @@ exec ros -Q -L sbcl-bin -m captools -- $0 "$@"
 
 (defun main (&rest argv)
   (declare (ignorable argv))
+  (captools.config:load-config)
+  (format T "Running on ~a workers~%" (captools.config:get-config :num-workers))
   (let* ((pending (captools:run-tests-by-prefix "./libs/payments"))
          (num-tests (length pending))
          (start-time (get-universal-time)))

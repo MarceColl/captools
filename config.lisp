@@ -1,4 +1,4 @@
-(:num-workers 2
+(:num-workers 20
  :database (:username "prisma"
             :password "prisma"
             :port 5433

@@ -1,14 +1,16 @@
 (defpackage #:captools.config
   (:use #:cl)
   (:export #:*config*
-           #:get-config))
+           #:get-config
+           #:load-config))
 
 (in-package #:captools.config)
 
 (defparameter *config* nil)
 
-(with-open-file (c "config.lisp")
-  (setf *config* (read c)))
+(defun load-config (&optional (filepath "config.lisp"))
+  (with-open-file (c filepath)
+    (setf *config* (read c))))
 
 (defun get-db-config (prop)
   (getf (getf *config* :database) prop))

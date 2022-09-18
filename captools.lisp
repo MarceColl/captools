@@ -7,8 +7,6 @@
 (defparameter *num-parallel-executions* 10)
 (defparameter *tests* nil)
 
-(setf lparallel:*kernel* (lparallel:make-kernel (getf *config* :num-workers)))
-
 (defun get-n-paths (pathname n)
   (let* ((subpaths (uiop:split-string pathname :separator "/"))
          (n (if (string= (car subpaths) "")
@@ -63,14 +61,15 @@
 Each test is ran in a pristine database environment in parallel with at most 10 workers.
 
 This will return a list of promises containing the results of the tests."
-  (format t "Starting tests...~%")
-  (reset-database)
-  (setup-template-tables)
-  (mapcar
-    (lambda (test-file)
-      (lparallel:future
-        (run-test test-file)))
-    test-list))
+  (let ((lparallel:*kernel* (lparallel:make-kernel (getf *config* :num-workers))))
+    (format t "Starting tests...~%")
+    (reset-database)
+    (setup-template-tables)
+    (mapcar
+      (lambda (test-file)
+        (lparallel:future
+          (run-test test-file)))
+      test-list)))
 
 (defun run-tests-by-prefix (prefix)
   (setf *tests* (start-tests (get-files-by-prefix prefix))))
